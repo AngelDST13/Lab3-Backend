@@ -1,0 +1,143 @@
+Project aduana {
+  database_type: 'MySQL'
+}
+
+// Laboratorio #3 - Sistema de inventario aduanero
+// Pegar este código en https://dbdiagram.io/d para ver/editar el DER
+// y exportarlo como PNG o PDF. Coincide con el script SQL (MySQL 8).
+
+Table pais {
+  id_pais int [pk, increment]
+  nombre varchar(60) [not null, unique]
+  codigo_iso char(2) [not null, unique]
+  continente varchar(20) [not null]
+}
+
+Table importador {
+  id_importador int [pk, increment]
+  razon_social varchar(120) [not null, unique]
+  nit varchar(15) [not null, unique]
+  tipo varchar(12) [not null, default: 'Importador']
+  direccion varchar(150) [not null]
+  telefono varchar(15)
+  correo varchar(100) [not null, unique]
+}
+
+Table agente_aduanal {
+  id_agente int [pk, increment]
+  nombre varchar(100) [not null]
+  licencia varchar(20) [not null, unique]
+  telefono varchar(15)
+  correo varchar(100) [unique]
+  activo boolean [not null, default: true]
+}
+
+Table partida_arancelaria {
+  id_partida int [pk, increment]
+  codigo_sa varchar(12) [not null, unique]
+  descripcion varchar(150) [not null]
+  porcentaje_arancel decimal(5,2) [not null, default: 0]
+}
+
+Table producto {
+  id_producto int [pk, increment]
+  descripcion varchar(120) [not null, unique]
+  unidad_medida varchar(15) [not null]
+  valor_unitario decimal(12,2) [not null]
+  id_partida int [not null, ref: > partida_arancelaria.id_partida]
+}
+
+Table funcionario {
+  id_funcionario int [pk, increment]
+  nombre varchar(100) [not null]
+  cargo varchar(40) [not null]
+  correo varchar(100) [not null, unique]
+  fecha_ingreso date [not null]
+  id_supervisor int [ref: > funcionario.id_funcionario, note: 'relación recursiva']
+}
+
+Table bodega {
+  id_bodega int [pk, increment]
+  nombre varchar(40) [not null, unique]
+  ubicacion varchar(100) [not null]
+  capacidad_m3 int [not null]
+  tipo varchar(25) [not null, default: 'General']
+}
+
+Table declaracion {
+  id_declaracion int [pk, increment]
+  numero varchar(20) [not null, unique]
+  fecha date [not null]
+  regimen varchar(15) [not null]
+  estado varchar(15) [not null, default: 'Registrada']
+  medio_transporte varchar(10) [not null]
+  id_importador int [not null, ref: > importador.id_importador]
+  id_agente int [not null, ref: > agente_aduanal.id_agente]
+  id_pais_origen int [not null, ref: > pais.id_pais]
+  id_pais_destino int [ref: > pais.id_pais]
+}
+
+Table detalle_declaracion {
+  id_declaracion int [not null, ref: > declaracion.id_declaracion]
+  id_producto int [not null, ref: > producto.id_producto]
+  cantidad decimal(12,2) [not null]
+  valor_declarado decimal(14,2) [not null]
+  indexes {
+    (id_declaracion, id_producto) [pk]
+  }
+  Note: 'Tabla intermedia que resuelve la relación N:M declaración-producto'
+}
+
+Table contenedor {
+  id_contenedor int [pk, increment]
+  numero varchar(11) [not null, unique]
+  tipo varchar(20) [not null]
+  peso_kg decimal(10,2) [not null]
+  id_declaracion int [not null, ref: > declaracion.id_declaracion]
+}
+
+Table inventario {
+  id_inventario int [pk, increment]
+  id_bodega int [not null, ref: > bodega.id_bodega]
+  id_producto int [not null, ref: > producto.id_producto]
+  id_declaracion int [not null, ref: > declaracion.id_declaracion]
+  cantidad decimal(12,2) [not null, default: 0]
+  fecha_ingreso date [not null]
+  estado varchar(15) [not null, default: 'Retenido']
+  indexes {
+    (id_bodega, id_producto, id_declaracion) [unique]
+  }
+}
+
+Table movimiento_inventario {
+  id_movimiento int [pk, increment]
+  tipo varchar(10) [not null]
+  fecha datetime [not null]
+  cantidad decimal(12,2) [not null]
+  id_producto int [not null, ref: > producto.id_producto]
+  id_bodega int [not null, ref: > bodega.id_bodega]
+  id_bodega_destino int [ref: > bodega.id_bodega]
+  id_declaracion int [not null, ref: > declaracion.id_declaracion]
+  id_funcionario int [not null, ref: > funcionario.id_funcionario]
+}
+
+Table inspeccion {
+  id_inspeccion int [pk, increment]
+  fecha date [not null]
+  canal varchar(12) [not null]
+  resultado varchar(20) [not null, default: 'Pendiente']
+  observaciones text
+  id_declaracion int [not null, ref: > declaracion.id_declaracion]
+  id_funcionario int [not null, ref: > funcionario.id_funcionario]
+}
+
+Table liquidacion {
+  id_liquidacion int [pk, increment]
+  id_declaracion int [not null, unique, ref: - declaracion.id_declaracion, note: 'relación 1:1']
+  valor_cif decimal(14,2) [not null]
+  monto_arancel decimal(14,2) [not null, default: 0]
+  monto_iva decimal(14,2) [not null, default: 0]
+  total_pagar decimal(14,2) [note: 'columna calculada: arancel + IVA']
+  estado_pago varchar(10) [not null, default: 'Pendiente']
+  fecha_pago date
+}

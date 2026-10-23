@@ -1,0 +1,13 @@
+# Datos y registros del servidor MySQL local (se recrean con el script .sql)
+servidor_mysql/data/
+servidor_mysql/*.log
+
+# Claves locales: nunca se suben
+servidor_mysql/CREDENCIALES_LOCALES_NO_SUBIR.txt
+*.env
+.env*
+
+# Archivos temporales de Office y del sistema
+~$*
+Thumbs.db
+.DS_Store

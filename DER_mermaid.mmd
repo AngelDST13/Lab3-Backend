@@ -1,0 +1,140 @@
+---
+title: DER - Sistema de Inventario Aduanero (MySQL 8)
+---
+erDiagram
+    PAIS ||--o{ DECLARACION : "origen de"
+    PAIS |o--o{ DECLARACION : "destino de"
+    IMPORTADOR ||--o{ DECLARACION : "presenta"
+    AGENTE_ADUANAL ||--o{ DECLARACION : "tramita"
+    PARTIDA_ARANCELARIA ||--o{ PRODUCTO : "clasifica"
+    DECLARACION ||--|{ DETALLE_DECLARACION : "contiene"
+    PRODUCTO ||--o{ DETALLE_DECLARACION : "aparece en"
+    DECLARACION ||--o{ CONTENEDOR : "transporta"
+    DECLARACION ||--o| LIQUIDACION : "genera (1:1)"
+    DECLARACION ||--o{ INSPECCION : "es revisada en"
+    FUNCIONARIO ||--o{ INSPECCION : "realiza"
+    FUNCIONARIO |o--o{ FUNCIONARIO : "supervisa (recursiva)"
+    BODEGA ||--o{ INVENTARIO : "almacena"
+    PRODUCTO ||--o{ INVENTARIO : "tiene stock en"
+    DECLARACION ||--o{ INVENTARIO : "ampara"
+    BODEGA ||--o{ MOVIMIENTO_INVENTARIO : "origen"
+    BODEGA |o--o{ MOVIMIENTO_INVENTARIO : "destino (traslado)"
+    PRODUCTO ||--o{ MOVIMIENTO_INVENTARIO : "se mueve"
+    DECLARACION ||--o{ MOVIMIENTO_INVENTARIO : "respalda"
+    FUNCIONARIO ||--o{ MOVIMIENTO_INVENTARIO : "registra"
+
+    PAIS {
+        int id_pais PK "AUTO_INCREMENT"
+        varchar nombre UK
+        char codigo_iso UK
+        varchar continente
+    }
+    IMPORTADOR {
+        int id_importador PK "AUTO_INCREMENT"
+        varchar razon_social UK
+        varchar nit UK
+        varchar tipo
+        varchar direccion
+        varchar telefono
+        varchar correo UK
+    }
+    AGENTE_ADUANAL {
+        int id_agente PK "AUTO_INCREMENT"
+        varchar nombre
+        varchar licencia UK
+        varchar telefono
+        varchar correo UK
+        boolean activo
+    }
+    PARTIDA_ARANCELARIA {
+        int id_partida PK "AUTO_INCREMENT"
+        varchar codigo_sa UK
+        varchar descripcion
+        decimal porcentaje_arancel
+    }
+    PRODUCTO {
+        int id_producto PK "AUTO_INCREMENT"
+        varchar descripcion UK
+        varchar unidad_medida
+        decimal valor_unitario
+        int id_partida FK
+    }
+    FUNCIONARIO {
+        int id_funcionario PK "AUTO_INCREMENT"
+        varchar nombre
+        varchar cargo
+        varchar correo UK
+        date fecha_ingreso
+        int id_supervisor FK
+    }
+    BODEGA {
+        int id_bodega PK "AUTO_INCREMENT"
+        varchar nombre UK
+        varchar ubicacion
+        int capacidad_m3
+        varchar tipo
+    }
+    DECLARACION {
+        int id_declaracion PK "AUTO_INCREMENT"
+        varchar numero UK
+        date fecha
+        varchar regimen
+        varchar estado
+        varchar medio_transporte
+        int id_importador FK
+        int id_agente FK
+        int id_pais_origen FK
+        int id_pais_destino FK
+    }
+    DETALLE_DECLARACION {
+        int id_declaracion PK,FK
+        int id_producto PK,FK
+        decimal cantidad
+        decimal valor_declarado
+    }
+    CONTENEDOR {
+        int id_contenedor PK "AUTO_INCREMENT"
+        varchar numero UK
+        varchar tipo
+        decimal peso_kg
+        int id_declaracion FK
+    }
+    INVENTARIO {
+        int id_inventario PK "AUTO_INCREMENT"
+        int id_bodega FK
+        int id_producto FK
+        int id_declaracion FK
+        decimal cantidad
+        date fecha_ingreso
+        varchar estado
+    }
+    MOVIMIENTO_INVENTARIO {
+        int id_movimiento PK "AUTO_INCREMENT"
+        varchar tipo
+        datetime fecha
+        decimal cantidad
+        int id_producto FK
+        int id_bodega FK
+        int id_bodega_destino FK
+        int id_declaracion FK
+        int id_funcionario FK
+    }
+    INSPECCION {
+        int id_inspeccion PK "AUTO_INCREMENT"
+        date fecha
+        varchar canal
+        varchar resultado
+        text observaciones
+        int id_declaracion FK
+        int id_funcionario FK
+    }
+    LIQUIDACION {
+        int id_liquidacion PK "AUTO_INCREMENT"
+        int id_declaracion FK,UK
+        decimal valor_cif
+        decimal monto_arancel
+        decimal monto_iva
+        decimal total_pagar
+        varchar estado_pago
+        date fecha_pago
+    }
